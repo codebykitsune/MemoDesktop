@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import './index.css'
+import './index.css';
+
+// 画像ファイルをインポートします
+import PlusIconSrc from '../images/plus.png';
+import BinIconSrc from '../images/bin.png';
 
 // メモの型定義
 interface Note {
@@ -9,21 +13,13 @@ interface Note {
 }
 
 // アイコンコンポーネント
-const PlusIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
+const PlusIcon: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = (props) => (
+    <img src={PlusIconSrc} alt="新しいメモ" width="20" height="20" {...props} />
 );
 
-const TrashIcon = () => (
-    <svg xmlns="./image/bin.png" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 6h18" />
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
+const TrashIcon: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = (props) => (
+    <img src={BinIconSrc} alt="削除" width="16" height="16" {...props} />
 );
-
 
 const Main: React.FC = () => {
     const [notes, setNotes] = useState<Note[]>([]);
@@ -36,8 +32,10 @@ const Main: React.FC = () => {
         if (savedNotes) {
             const parsedNotes: Note[] = JSON.parse(savedNotes);
             setNotes(parsedNotes);
+            // 最新のメモが一番上に来るようにソートされている前提で最初のメモを選択
             if (parsedNotes.length > 0) {
-                setSelectedNoteId(parsedNotes[0].id);
+                const sorted = [...parsedNotes].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                setSelectedNoteId(sorted[0].id);
             }
         }
     }, []);
@@ -97,77 +95,90 @@ const Main: React.FC = () => {
         if (selectedNoteId === null) return;
         const remainingNotes = notes.filter(note => note.id !== selectedNoteId);
         setNotes(remainingNotes);
-        // 次のメモを選択（なければnull）
-        const newSelectedId = remainingNotes.length > 0 ? remainingNotes[0].id : null;
+        const newSelectedId = sortedNotes.find(n => n.id !== selectedNoteId)?.id || null;
         setSelectedNoteId(newSelectedId);
     };
     
     const { title: selectedNoteTitle } = selectedNote ? getNotePreview(selectedNote.content) : { title: '' };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100 font-sans">
-            {/* ヘッダー */}
-            <header className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 flex-shrink-0">
-                 <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                    <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                </div>
-                <h1 className="text-sm font-semibold text-gray-700">メモ帳アプリ (React)</h1>
-                <span className="text-sm text-gray-400 w-24 text-right">{saveStatus}</span>
-            </header>
-
-            <div className="flex flex-grow min-h-0">
-                {/* サイドバー */}
-                <aside className="w-1/3 md:w-1/4 lg:w-1/5 bg-white border-r border-gray-200 flex flex-col">
-                    <div className="p-4">
-                        <button onClick={handleNewNote} className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors">
-                            <PlusIcon />
-                            新しいメモ
-                        </button>
+        <div className="font-sans h-screen bg-gray-100 flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+                {/* ヘッダー */}
+                <header className="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+                        <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                        <span className="w-3 h-3 bg-green-500 rounded-full"></span>
                     </div>
-                    <nav className="flex-grow overflow-y-auto">
-                        {sortedNotes.map(note => {
-                            const { title, preview } = getNotePreview(note.content);
-                            return (
-                                <div
-                                    key={note.id}
-                                    onClick={() => setSelectedNoteId(note.id)}
-                                    className={`px-4 py-3 cursor-pointer border-l-4 ${selectedNoteId === note.id ? 'border-blue-600 bg-blue-50' : 'border-transparent hover:bg-gray-100'}`}
-                                >
-                                    <h2 className={`font-bold truncate text-gray-800 ${selectedNoteId === note.id ? 'text-blue-700' : ''}`}>{title}</h2>
-                                    <p className="text-sm text-gray-500 truncate">{preview}</p>
-                                </div>
-                            );
-                        })}
-                    </nav>
-                </aside>
+                    <h1 className="text-sm font-semibold text-gray-700">メモ帳アプリ (React)</h1>
+                    <div className="w-24 text-sm text-right text-gray-400">{saveStatus}</div>
+                </header>
 
-                {/* メインエディタ */}
-                <main className="w-2/3 md:w-3/4 lg:w-4/5 flex flex-col">
-                    {selectedNote ? (
-                        <div className="flex flex-col flex-grow p-6 md:p-8 bg-white m-4 rounded-lg shadow">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedNoteTitle}</h1>
-                            <textarea
-                                key={selectedNote.id}
-                                value={selectedNote.content}
-                                onChange={(e) => handleUpdateNoteContent(e.target.value)}
-                                className="flex-grow w-full bg-transparent text-gray-700 focus:outline-none resize-none text-base leading-relaxed"
-                                placeholder="ここに内容を書き始めます..."
-                            />
-                            <div className="flex justify-end mt-4">
-                                <button onClick={handleDeleteNote} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-red-600 transition-colors text-sm">
-                                    <TrashIcon />
-                                    削除
-                                </button>
+                <div className="flex flex-grow h-full overflow-hidden">
+                    {/* サイドバー */}
+                    <aside className="w-1/3 md:w-1/4 h-full bg-gray-50 border-r border-gray-200 flex flex-col">
+                        <div className="p-2 border-b border-gray-200">
+                            <button onClick={handleNewNote} className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors">
+                                <PlusIcon className="filter invert" />
+                                新しいメモ
+                            </button>
+                        </div>
+                        <nav className="flex-grow overflow-y-auto p-2 space-y-1">
+                            {sortedNotes.map(note => {
+                                const { title, preview } = getNotePreview(note.content);
+                                const isSelected = selectedNoteId === note.id;
+                                return (
+                                    <div
+                                        key={note.id}
+                                        onClick={() => setSelectedNoteId(note.id)}
+                                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                                            isSelected
+                                                ? 'bg-blue-600 text-white'
+                                                : 'hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        <h2 className={`font-semibold truncate text-sm ${isSelected ? 'text-white' : 'text-gray-800'}`}>{title}</h2>
+                                        <p className={`text-xs truncate ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>{preview}</p>
+                                    </div>
+                                );
+                            })}
+                        </nav>
+                    </aside>
+
+                    {/* メインエディタ */}
+                    <main className="w-2/3 md:w-3/4 flex flex-col bg-white">
+                        {selectedNote ? (
+                            <>
+                                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                                    <h1 className="text-2xl font-bold text-gray-900">{selectedNoteTitle || '新しいメモ'}</h1>
+                                </div>
+                                <div className="flex-grow p-4 overflow-y-auto">
+                                    <textarea
+                                        key={selectedNote.id}
+                                        value={selectedNote.content}
+                                        onChange={(e) => handleUpdateNoteContent(e.target.value)}
+                                        className="w-full h-full bg-transparent text-gray-700 focus:outline-none resize-none text-base leading-relaxed"
+                                        placeholder="ここに内容を書き始めます..."
+                                    />
+                                </div>
+                                <footer className="p-2 border-t border-gray-200 flex justify-end flex-shrink-0">
+                                    <button onClick={handleDeleteNote} className="bg-red-500 text-white font-semibold py-2 px-3 rounded-lg flex items-center gap-2 hover:bg-red-600 transition-colors text-sm">
+                                        <TrashIcon className="filter invert" />
+                                        削除
+                                    </button>
+                                </footer>
+                            </>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-center text-gray-500 p-4">
+                                <div>
+                                    <h2 className="text-xl font-semibold">メモが選択されていません</h2>
+                                    <p className="mt-2">左側のリストからメモを選択するか、「新しいメモ」ボタンで作成してください。</p>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-gray-500">
-                            <p>メモを選択するか、新しいメモを作成してください。</p>
-                        </div>
-                    )}
-                </main>
+                        )}
+                    </main>
+                </div>
             </div>
         </div>
     );

@@ -5,7 +5,12 @@ import { plugins } from './webpack.plugins';
 
 rules.push({
   test: /\.css$/,
-  use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
+  use: [{ loader: 'style-loader' }, { loader: 'css-loader' },{ loader: 'postcss-loader' }],
+});
+
+rules.push({
+  test: /\.(png|jpe?g|gif|svg)$/i,
+  type: 'asset/resource', // Webpack 5 built-in asset handling
 });
 
 export const rendererConfig: Configuration = {
